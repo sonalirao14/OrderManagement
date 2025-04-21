@@ -1,0 +1,39 @@
+services:
+  webapplication1:
+    image: ${DOCKER_REGISTRY-}webapplication1
+    build:
+      context: .
+      dockerfile: WebApplication1/Dockerfile
+    ports:
+      - "5139:5139"
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_healthy
+    environment:
+      - ConnectionStrings__Default=server=db;port=3306;database=ProductsInventory;user=root;password=Arun123
+      - Redis__Host=redis:6379
+
+  redis:
+    image: redis:7.0
+    ports:
+      - "6380:6379"
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: Arun123
+      MYSQL_DATABASE: ProductsInventory
+    ports:
+      - "3307:3306"
+    volumes:
+    - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  mysql-data:
+
