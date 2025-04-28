@@ -42,8 +42,8 @@ namespace WebApplication1.Middleware
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new RsaSecurityKey(_rsa),
-                RoleClaimType = "userRole",
-                NameClaimType = "email",
+                //RoleClaimType = "userRole",
+                //NameClaimType = "email",
                 //RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/roles"
             };
             var pqr =  await GetCLaims(token);

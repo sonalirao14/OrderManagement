@@ -32,12 +32,10 @@ namespace WebApplication1.Middleware
 
         private async Task HandleExceptionAsync(HttpContext context, Exception ex)
         {
-            // Default values for the error response
             HttpStatusCode statusCode = HttpStatusCode.InternalServerError;
             string message = "An unexpected error occurred.";
             string? details = null;
 
-            // Map specific exceptions to status codes and messages
             switch (ex)
             {
                 case NotFoundException:

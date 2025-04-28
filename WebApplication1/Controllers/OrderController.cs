@@ -44,7 +44,7 @@ namespace WebApplication1.Controllers
 
                 var order = await _orderService.CreateOrderAsync(createOrderDto, userIdString);
                 //await _productRedisCache.InvalidateProductCachesAsync();
-               await  _logger.LogInformationAsync("Invalideted product cache as product stock has been changed after creating order");
+                await  _logger.LogInformationAsync("Invalideted product cache as product stock has been changed after creating order");
                 return CreatedAtAction(nameof(GetOrder), new { id = order.Id },new { message = $"Order created successfully and Order ID you can see here: {order.Id}" });
             }
             catch (Exception e)
