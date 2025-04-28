@@ -9,7 +9,11 @@
 *.user
 *.userosscache
 *.sln.docstates
+# Ignore virtual disk files
+*.vhdx
 
+# Ignore specific folders (optional)
+DockerDesktopWSL/
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
