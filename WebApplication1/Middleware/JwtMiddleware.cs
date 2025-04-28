@@ -28,10 +28,18 @@ namespace WebApplication1.Middleware
                 try
                 {
                     var jwtHandler = context.RequestServices.GetRequiredService<JwtSecurityTokenHandlerWrapper>();
-                    var claimsPrincipal = jwtHandler.ValidateJwtToken(token);
+                    var claimsPrincipal = await jwtHandler.ValidateJwtToken(token);
+
+
+                    if (claimsPrincipal?.Identity != null)
+                    {
+                        _logger.LogInformation("ClaimsPrincipal created. IsAuthenticated: {IsAuth}", claimsPrincipal.Identity.IsAuthenticated);
+                        _logger.LogInformation("User Claims: {Claims}",
+                            string.Join(", ", claimsPrincipal.Claims.Select(c => $"{c.Type}:{c.Value}")));
+                    }
 
                     context.User = claimsPrincipal;
-                    _logger.LogInformation("JWT token validated and HttpContext.User set");
+                    _logger.LogInformation("HttpContext.User has been set with validated ClaimsPrincipal");
                 }
                 catch (SecurityTokenValidationException ex)
                 {

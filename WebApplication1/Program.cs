@@ -22,6 +22,10 @@ using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Microsoft.Extensions.Caching.Distributed;
 using WebApplication1.Services;
+using Infrastructure.Caching;
+using System.Text.Json;
+using Infrastructure;
+using Microsoft.Extensions.Logging.Console;
 
 
 
@@ -44,53 +48,82 @@ namespace WebApplication1
                 options.DefaultChallengeScheme = "CustomJwt";
             }).AddScheme<AuthenticationSchemeOptions, PassThroughAuthenticationHandler>("CustomJwt", null);
 
-            builder.Services.AddAuthorization(options =>
-            {
-                options.AddPolicy("AdminOnly", policy =>
-                    policy.RequireRole("admin")
-                );
-            });
+            //builder.Services.AddAuthorization(options =>
+            //{
+            //    options.AddPolicy("AdminOnly", policy =>
+            //        policy.RequireRole("admin")
+            //    );
+            //});
 
+            //builder.Services.AddLogging(logging =>
+            //{
+            //    logging.AddConsole();
+            //    logging.SetMinimumLevel(LogLevel.Information);
+            //});
+
+            //change
+            //builder.Logging.ClearProviders();
+            //builder.Logging.AddJsonConsole(options =>
+            //{
+            //    options.JsonWriterOptions = new JsonWriterOptions { Indented = true };
+            //});
             builder.Services.AddLogging(logging =>
             {
-                logging.AddConsole();
-                logging.SetMinimumLevel(LogLevel.Information);
+                logging.AddConsole(options => options.FormatterName = ConsoleFormatterNames.Simple);
+                //logging.AddFilter("Microsoft", LogLevel.Warning);
+                //logging.AddFilter("System", LogLevel.Warning);
+                //logging.SetMinimumLevel(Enum.Parse<LogLevel>(
+                //    builder.Configuration["Logging:LogLevel:Default"] ?? "Information"));
             });
 
-            
-            builder.Services.AddSingleton<IDistributedCache, CustomRedisCache>();
-            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
-            {
-                var logger = sp.GetRequiredService<ILogger<Program>>();
-                try
-                {
-                    //var config = ConfigurationOptions.Parse("Redis:Host");
-                    //config.DefaultDatabase = 1; // db=1 for .NET
-                    //config.ConnectTimeout = 5000;
-                    //config.AbortOnConnectFail = false;
-                    //return ConnectionMultiplexer.Connect(config);
-                    var redisHost = builder.Configuration["Redis:Host"] ?? "localhost:6379";
-                    var config = ConfigurationOptions.Parse(redisHost);
-                    config.DefaultDatabase = 1; // db=1 for .NET
-                    config.ConnectTimeout = 5000;
-                    config.AbortOnConnectFail = false;
+            // Register dependencies
+            builder.Services.AddSingleton<IWebHostEnvironment>(builder.Environment);
 
-                    logger.LogInformation("Connecting to Redis at: {RedisHost}", redisHost);
 
-                    return ConnectionMultiplexer.Connect(config);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to connect to Redis at startup. Caching will fallback to database.");
-                    throw; 
-                }
-            });
+            //builder.Services.AddSingleton<IDistributedCache, CustomRedisCache>();
+            //builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+            //{
+            //    var logger = sp.GetRequiredService<ILogger<Program>>();
+            //    try
+            //    {
+            //        //var config = ConfigurationOptions.Parse("Redis:Host");
+            //        //config.DefaultDatabase = 1; // db=1 for .NET
+            //        //config.ConnectTimeout = 5000;
+            //        //config.AbortOnConnectFail = false;
+            //        //return ConnectionMultiplexer.Connect(config);
+            //        var redisHost = builder.Configuration["Redis:Host"] ?? "localhost:6379";
+            //        var config = ConfigurationOptions.Parse(redisHost);
+            //        config.DefaultDatabase = 1; // db=1 for .NET
+            //        config.ConnectTimeout = 5000;
+            //        config.AbortOnConnectFail = false;
 
-            builder.Services.AddScoped<ProductRedisCache>();
+            //        logger.LogInformation("Connecting to Redis at: {RedisHost}", redisHost);
+
+            //        return ConnectionMultiplexer.Connect(config);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        logger.LogError(ex, "Failed to connect to Redis at startup. Caching will fallback to database.");
+            //        throw;
+            //    }
+            //});
+
+            //builder.Services.AddScoped<ProductRedisCache>();
+
+            // Register Redis configuration and connection factory
+            builder.Services.Configure<RedisConfiguration>(builder.Configuration.GetSection("Redis"));
+            builder.Services.AddSingleton<IRedisConnectionFactory, RedisConnectionFactory>();
+            builder.Services.AddSingleton(sp => sp.GetRequiredService<IRedisConnectionFactory>().GetConnection());
+
+            // Register cache service
+            builder.Services.AddScoped(typeof(ICacheService<>), typeof(RedisCacheService<>));
+            //change
+            builder.Services.AddSingleton<ILoggingService, LoggingService>();
+
             builder.Services.AddScoped<JwtSecurityTokenHandlerWrapper>();
 
 
-  
+
             builder.Services.AddControllers();
 
             builder.Services.AddValidatorsFromAssemblyContaining<ProductValidator>();
@@ -104,11 +137,12 @@ namespace WebApplication1
             //builder.Services.AddDbContext<AppDBContext>(options =>
             //      options.UseMySql(builder.Configuration.GetConnectionString("default"),
             //                       new MySqlServerVersion(new Version(8, 0, 34))));
-
-
-            builder.Services.AddScoped<IDBManager,DBManager>();
-            builder.Services.AddScoped<IOrderService,OrderService>();
             builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+
+            builder.Services.AddScoped<IDBManager, DBManager>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
+            //builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IProductService, ProductService>();
 
             builder.Services.AddEndpointsApiExplorer();
@@ -124,17 +158,17 @@ namespace WebApplication1
                 });
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
                 }
-            },
-            Array.Empty<string>()
-        }
     });
             });
 
@@ -151,11 +185,14 @@ namespace WebApplication1
 
             var app = builder.Build();
             app.UseCors("AllowAll");
+         //change
+            //app.UseMiddleware<ExceptionHandling>();
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
             using (var scope = app.Services.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDBContext>();
@@ -166,10 +203,15 @@ namespace WebApplication1
             app.UseHttpsRedirection();
             app.UseMiddleware<JwtMiddleware>();
             app.UseAuthentication();
+            //app.UseMiddleware<JwtMiddleware>();
+            app.UseMiddleware<AuthContext>();
             app.UseAuthorization();
+            app.UseMiddleware<ExceptionHandling>();
             app.MapControllers();
 
             app.Run();
         }
+
+     
     }
 }

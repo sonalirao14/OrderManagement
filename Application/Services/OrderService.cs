@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Core.DTOs;
 using Core.Domain;
 using Core.Mapping;
+using Core.Exceptions;
 using Infrastructure.DataBase;
 using Application.Validators;
 using Core.Interfaces;
@@ -16,11 +17,14 @@ namespace Application.Services
     {
         private readonly IDBManager _databaseManager;
         private readonly IValidator<OrderCreateDTO> _orderCreateValidator;
-
-        public OrderService(IDBManager databaseManager,IValidator<OrderCreateDTO> validator)
+        private readonly ICacheService<List<ProductDTO>> _listCacheService;
+        private readonly ILoggingService _logger;
+        public OrderService(IDBManager databaseManager,IValidator<OrderCreateDTO> validator, ICacheService<List<ProductDTO>> listCacheService, ILoggingService logger)
         {
             _databaseManager = databaseManager;
             _orderCreateValidator = validator;
+            _listCacheService = listCacheService;
+            _logger = logger;
         }
 
         public async Task<OrderDTO> CreateOrderAsync(OrderCreateDTO createOrderDto, string userId)
@@ -29,7 +33,7 @@ namespace Application.Services
             var validationResult = await _orderCreateValidator.ValidateAsync(createOrderDto);
             if (!validationResult.IsValid)
             {
-                throw new ArgumentException(validationResult.Errors.First().ErrorMessage);
+                throw new Core.Exceptions.ValidationException(validationResult.Errors.First().ErrorMessage);
             }
             var productIds = createOrderDto.Items.Select(i => i.ProductId).ToList();
 
@@ -40,9 +44,13 @@ namespace Application.Services
             {
                 if (i == Guid.Empty)
                 {
-                    throw new ArgumentException("Product ID is invalid.");
+                    throw new Core.Exceptions.ValidationException ("Product ID is invalid.");
                 }
                 var product = await _databaseManager.ProductRepository.GetByIDAsync(i);
+                if (product == null)
+                {
+                    throw new Core.Exceptions.ValidationException($"Product with ID {i} not found.");
+                }
                 products.Add(product);
 
             }
@@ -50,7 +58,7 @@ namespace Application.Services
 
             if (products.Count != productIds.Count)
             {
-                throw new ArgumentException("Some products are missing!!");
+                throw new NotFoundException("Some products are missing!!");
             }
 
             var productMap = products.ToDictionary(p => p.ID, p => p);
@@ -59,7 +67,7 @@ namespace Application.Services
                 var product = productMap[item.ProductId];
                 if (product.StockQuantity < item.Quantity)
                 {
-                    throw new ArgumentException(
+                   throw new InsufficientStockException(
                         $"Not enough stock for {product.Name}. Available: {product.StockQuantity}, Requested: {item.Quantity}");
                 }
             }
@@ -75,8 +83,10 @@ namespace Application.Services
             }
             await _databaseManager.OrderRepository.AddAsync(order);
             await _databaseManager.SaveChangesAsync();
+            await _listCacheService.InvalidateByPatternAsync("product_ids:*");
+            await _logger.LogInformationAsync("Invalidated cache when order has beeen created!!");
 
-          
+
             return OrderMapper.MapToOrderDto(order, products);
         }
 
@@ -85,17 +95,17 @@ namespace Application.Services
            
             if (orderId == Guid.Empty)
             {
-                throw new ArgumentException("Order ID is invalid.");
+                throw new Core.Exceptions.ValidationException("Order ID is invalid.");
             }
             var order = await _databaseManager.OrderRepository.GetByIdWithDetailsAsync(orderId);
 
             if (order == null)
             {
-                throw new KeyNotFoundException("Order not found.");
+                throw new NotFoundException("Order not found.");
             }
             if (order.UserId != userId)
             {
-                throw new UnauthorizedAccessException("You are not authorize to see this order.");
+                throw new UnauthorizedException("You are not authorize to see this order.");
             }
             var products = order.Items.Select(i => i.Product).ToList();
             return OrderMapper.MapToOrderDto(order, products);
@@ -105,30 +115,32 @@ namespace Application.Services
         {
             if (orderId == Guid.Empty)
             {
-                throw new ArgumentException("Not a valid Order exist with this ID");
+                throw new Core.Exceptions.ValidationException("Not a valid Order exist with this ID");
             }
             var order = await _databaseManager.OrderRepository.GetByIdWithDetailsAsync(orderId);
 
             if (order == null)
             {
-                throw new KeyNotFoundException("Order not found.");
+                throw new NotFoundException("Order not found.");
             }
             if (order.UserId != userId)
             {
-                throw new UnauthorizedAccessException("You can only cancel your own orders.");
+                throw new UnauthorizedException("You can only cancel your own orders.");
             }
             foreach (var item in order.Items)
             {
                 var product = item.Product;
                 if (product == null)
                 {
-                    throw new InvalidOperationException($"Product {item.ProductID} not found.");
+                    throw new NotFoundException($"Product {item.ProductID} not found.");
                 }
                 product.StockQuantity += item.Quantity;
                await _databaseManager.ProductRepository.UpdateAsync(product);
             }
              _databaseManager.OrderRepository.Delete(order);
             await _databaseManager.SaveChangesAsync();
+            await _listCacheService.InvalidateByPatternAsync("product_ids:*");
+            await _logger.LogInformationAsync("Invalidated cache when order has been deleted and product is being restored in the stock again!!");
         }
     }
 }

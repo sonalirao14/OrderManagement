@@ -4,13 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Infrastructure.Data;
+using Core.Interfaces;
 
 namespace Infrastructure.DataBase
 {
     public interface IDBManager
     {
-        ProductRepository ProductRepository { get; }
-        OrderRepository OrderRepository { get; }
+        IProductRepository ProductRepository { get; }
+        IOrderRepository OrderRepository { get; }
         Task<int> SaveChangesAsync();
     }
 }
