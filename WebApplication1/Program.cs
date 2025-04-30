@@ -21,11 +21,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 using Microsoft.Extensions.Caching.Distributed;
-using WebApplication1.Services;
+//using WebApplication1.Services;
 using Infrastructure.Caching;
 using System.Text.Json;
 using Infrastructure;
-using Microsoft.Extensions.Logging.Console;
+using Infrastructure.Logging;
+using Microsoft.Extensions.Logging;
 
 
 
@@ -67,13 +68,25 @@ namespace WebApplication1
             //{
             //    options.JsonWriterOptions = new JsonWriterOptions { Indented = true };
             //});
-            builder.Services.AddLogging(logging =>
+
+
+            //builder.Services.AddLogging(logging =>
+            //{
+            //    logging.AddConsole(options => options.FormatterName = ConsoleFormatterNames.Simple);
+            //    //logging.AddFilter("Microsoft", LogLevel.Warning);
+            //    //logging.AddFilter("System", LogLevel.Warning);
+            //    //logging.SetMinimumLevel(Enum.Parse<LogLevel>(
+            //    //    builder.Configuration["Logging:LogLevel:Default"] ?? "Information"));
+            //});
+
+            builder.Logging.ClearProviders(); 
+            //builder.Logging.AddCustomLogger();
+            builder.Logging.AddCustomLogger(config =>
             {
-                logging.AddConsole(options => options.FormatterName = ConsoleFormatterNames.Simple);
-                //logging.AddFilter("Microsoft", LogLevel.Warning);
-                //logging.AddFilter("System", LogLevel.Warning);
-                //logging.SetMinimumLevel(Enum.Parse<LogLevel>(
-                //    builder.Configuration["Logging:LogLevel:Default"] ?? "Information"));
+                config.LogToConsole = true;
+                config.LogToFile = false;
+                //config.FilePath = "logs/app.log";
+                config.MinimumLogLevel = LogLevel.Information;
             });
 
             // Register dependencies

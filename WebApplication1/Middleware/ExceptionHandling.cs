@@ -8,10 +8,11 @@ namespace WebApplication1.Middleware
     public class ExceptionHandling
     {
         private readonly RequestDelegate _next;
-        private readonly ILoggingService _logger;
+        //private readonly ILoggingService _logger;
+        private readonly ILogger<ExceptionHandling> _logger;
         private readonly IWebHostEnvironment _env;
 
-        public ExceptionHandling(RequestDelegate next, ILoggingService logger, IWebHostEnvironment env)
+        public ExceptionHandling(RequestDelegate next, ILogger<ExceptionHandling> logger, IWebHostEnvironment env)
         {
             _next = next;
             _logger = logger;
@@ -68,13 +69,17 @@ namespace WebApplication1.Middleware
 
             if (statusCode == HttpStatusCode.InternalServerError)
             {
-                await _logger.LogErrorAsync(ex, "Unhandled error: {Message}, Path: {Path}, TraceId: {TraceId}",
+                //await _logger.LogErrorAsync(ex, "Unhandled error: {Message}, Path: {Path}, TraceId: {TraceId}",
+                //    message, context.Request.Path, context.TraceIdentifier);
+                _logger.LogError(ex, "Unhandled error: {Message}, Path: {Path}, TraceId: {TraceId}",
                     message, context.Request.Path, context.TraceIdentifier);
             }
             else
             {
-                await _logger.LogWarningAsync("Handled error: {Message}, Path: {Path}, TraceId: {TraceId}",
-                    message, context.Request.Path, context.TraceIdentifier); // Removed 'ex'
+                //await _logger.LogWarningAsync("Handled error: {Message}, Path: {Path}, TraceId: {TraceId}",
+                //    message, context.Request.Path, context.TraceIdentifier); // Removed 'ex'
+                _logger.LogWarning("Handled error: {Message}, Path: {Path}, TraceId: {TraceId}",
+                    message, context.Request.Path, context.TraceIdentifier);
             }
            
             var response = new

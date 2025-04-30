@@ -20,13 +20,14 @@ namespace Application.Services
         private readonly IProductRepository _repository;
         private readonly ICacheService<List<ProductDTO>> _listCacheService;
         private readonly IRedisConnectionFactory _redisFactory;
-        private readonly ILoggingService _logger;
+        //private readonly ILoggingService _logger;
+        private readonly ILogger<ProductService> _logger;
 
         public ProductService(
             IProductRepository repository,
             ICacheService<List<ProductDTO>> listCacheService,
             IRedisConnectionFactory redisFactory,
-            ILoggingService logger)
+            ILogger<ProductService> logger)
         {
             _repository = repository;
             _listCacheService = listCacheService;
@@ -40,7 +41,8 @@ namespace Application.Services
             var cached = await _listCacheService.GetAsync(cacheKey);
             if (cached != null)
             {
-                await _logger.LogInformationAsync("Retrieved product list from cache for category {Category}", category ?? "all");
+                //await _logger.LogInformationAsync("Retrieved product list from cache for category {Category}", category ?? "all");
+                _logger.LogInformation("Retrieved product list from cache for category {Category}", category ?? "all");
                 return cached;
             }
 
@@ -50,7 +52,8 @@ namespace Application.Services
             if (productDtos.Any())
             {
                 await _listCacheService.SetAsync(cacheKey, productDtos, TimeSpan.FromMinutes(5));
-                await _logger.LogInformationAsync("Cached product list for category {Category}", category ?? "all");
+                //await _logger.LogInformationAsync("Cached product list for category {Category}", category ?? "all");
+                _logger.LogInformation("Cached product list for category {Category}", category ?? "all");
             }
 
             return productDtos;
@@ -61,7 +64,7 @@ namespace Application.Services
             var product = await _repository.GetByIDAsync(id);
             if (product == null)
             {
-                await _logger.LogWarningAsync("Product with ID {ProductId} not found", id);
+                _logger.LogInformation("Invalidated Cache when order has been created!!");
                 throw new NotFoundException($"Product with ID {id} not found");
             }
 
@@ -77,14 +80,14 @@ namespace Application.Services
                 existingProduct.StockQuantity += product.StockQuantity;
                 var updated = await _repository.UpdateAsync(existingProduct);
                 await InvalidateProductCachesAsync();
-                await _logger.LogInformationAsync("Updated existing product {ProductId} and invalidated caches", existingProduct.ID);
+                _logger.LogInformation("Updated existing product {ProductId} and invalidated caches", existingProduct.ID);
                 return ProductMapper.ToDto(updated);
             }
 
             product.ID = Guid.NewGuid();
             var created = await _repository.AddAsync(product);
             await InvalidateProductCachesAsync();
-            await _logger.LogInformationAsync("Created new product {ProductId} and invalidated caches", created.ID);
+            _logger.LogInformation("Created new product {ProductId} and invalidated caches", created.ID);
             return ProductMapper.ToDto(created);
         }
 
@@ -93,14 +96,15 @@ namespace Application.Services
             var product = await _repository.GetByIDAsync(id);
             if (product == null)
             {
-                await _logger.LogWarningAsync("Product with ID {ProductId} not found", id);
+                _logger.LogWarning("Product with ID {ProductId} not found", id);
                 throw new NotFoundException($"Product with ID {id} not found");
             }
 
             ProductMapper.UpdateEntity(product, dto);
             var updated = await _repository.UpdateAsync(product);
             await InvalidateProductCachesAsync();
-            await _logger.LogInformationAsync("Updated product {ProductId} and invalidated caches", id);
+            //await _logger.LogInformationAsync("Updated product {ProductId} and invalidated caches", id);
+            _logger.LogInformation("Updated product {ProductId} and Invalidated caches", id);
             return ProductMapper.ToDto(updated);
         }
 
@@ -109,13 +113,13 @@ namespace Application.Services
             var product = await _repository.GetByIDAsync(id);
             if (product == null)
             {
-                await _logger.LogWarningAsync("Product with ID {ProductId} not found", id);
+                _logger.LogWarning("Product with ID {ProductId} not found", id);
                 throw new NotFoundException($"Product with ID {id} not found");
             }
 
             await _repository.DeleteAsync(id);
             await InvalidateProductCachesAsync();
-            await _logger.LogInformationAsync("Deleted product {ProductId} and invalidated caches", id);
+            _logger.LogInformation("Deleted product {ProductId} and invalidated caches", id);
         }
 
         private async Task InvalidateProductCachesAsync()
@@ -123,11 +127,11 @@ namespace Application.Services
             try
             {
                 await _listCacheService.InvalidateByPatternAsync("product_ids:*");
-                await _logger.LogInformationAsync("Successfully invalidated product cache");
+                _logger.LogInformation("Successfully invalidated product cache");
             }
             catch (Exception ex)
             {
-                await _logger.LogErrorAsync(ex, "Error while invalidating product cache");
+                _logger.LogError(ex, "Error while invalidating product cache");
                 throw;
             }
         }   

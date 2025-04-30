@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApplication1.Routes;
 using Core.Exceptions;
-using WebApplication1.Services;
+//using WebApplication1.Services;
 
 namespace WebApplication1.Controllers
 {
@@ -16,10 +16,10 @@ namespace WebApplication1.Controllers
      
         private readonly IOrderService _orderService;
         //private readonly ProductRedisCache _productRedisCache;
-        //private readonly ILogger<OrderController> _logger;
-        private readonly ILoggingService _logger;
+        private readonly ILogger<OrderController> _logger;
+        //private readonly ILoggingService _logger;
 
-        public OrderController(IOrderService orderService, ILoggingService  logger)
+        public OrderController(IOrderService orderService, ILogger<OrderController>  logger)
         {
             _orderService = orderService;
             //_productRedisCache = productRedisCache;
@@ -34,7 +34,8 @@ namespace WebApplication1.Controllers
             {
                 //var userIdString = User.FindFirst("userId")?.Value;
                 var userIdString = HttpContext.Items["UserId"]?.ToString();
-                await _logger.LogInformationAsync("UserId: " + userIdString);
+                //await _logger.LogInformationAsync("UserId: " + userIdString);
+                _logger.LogInformation("UserId: " + userIdString);
                 if (string.IsNullOrEmpty(userIdString))
                 {
                     //return Unauthorize("Invalid or missing token!!!");
@@ -44,12 +45,14 @@ namespace WebApplication1.Controllers
 
                 var order = await _orderService.CreateOrderAsync(createOrderDto, userIdString);
                 //await _productRedisCache.InvalidateProductCachesAsync();
-                await  _logger.LogInformationAsync("Invalideted product cache as product stock has been changed after creating order");
+                //await  _logger.LogInformationAsync("Invalideted product cache as product stock has been changed after creating order");
+                _logger.LogInformation("Invalideted product cache as product stock has been changed after creating order");
                 return CreatedAtAction(nameof(GetOrder), new { id = order.Id },new { message = $"Order created successfully and Order ID you can see here: {order.Id}" });
             }
             catch (Exception e)
             {
-              await _logger.LogErrorAsync(e,"Eorr while creating order");
+                //await _logger.LogErrorAsync(e,"Eorr while creating order");
+                _logger.LogError(e, "Error while creating order");
                 //return BadRequest(new { error = e.Message });
                 throw new Exception("unknown exception occured while ordering");
             }
@@ -71,7 +74,8 @@ namespace WebApplication1.Controllers
             }
             catch (Exception e)
             {
-                await _logger.LogErrorAsync(e, "Error while getting product order details");
+                //await _logger.LogErrorAsync(e, "Error while getting product order details");
+                  _logger.LogError(e, "Error while getting product order details");
                 //return BadRequest(new {error = e.Message});
                 throw new Exception("Unknow error occured");
             }
@@ -94,7 +98,8 @@ namespace WebApplication1.Controllers
             }
             catch (Exception e)
             {
-                await _logger.LogErrorAsync(e,"Error while cancelling order!!");
+                //await _logger.LogErrorAsync(e,"Error while cancelling order!!");
+                _logger.LogError(e, "Error while cancelling order!!");
                 //return BadRequest(new {error=e.Message});
                 throw new Exception("An unknown exception occured while cancelling order");
             }

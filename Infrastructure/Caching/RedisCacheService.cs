@@ -15,11 +15,11 @@ namespace Infrastructure.Caching
     public class RedisCacheService<T> : ICacheService<T> where T : class
     {
         private readonly IRedisConnectionFactory _redisFactory;
-        //private readonly ILogger<RedisCacheService<T>> _logger;
-        private readonly ILoggingService _logger;
+        private readonly ILogger<RedisCacheService<T>> _logger;
+        //private readonly ILoggingService _logger;
         private readonly IDatabase _database;
 
-        public RedisCacheService(IRedisConnectionFactory redisFactory, ILoggingService logger)
+        public RedisCacheService(IRedisConnectionFactory redisFactory, ILogger<RedisCacheService<T>> logger)
         {
             _redisFactory = redisFactory;
             _logger = logger;
@@ -41,7 +41,8 @@ namespace Infrastructure.Caching
             }
             catch (Exception ex)
             {
-               await _logger.LogErrorAsync(ex, "Error retrieving key {Key} from Redis.", key);
+                //await _logger.LogErrorAsync(ex, "Error retrieving key {Key} from Redis.", key);
+                _logger.LogError(ex,"Error retrieving key {key} from redis", key);
                 throw;
             }
         }
@@ -64,7 +65,8 @@ namespace Infrastructure.Caching
             }
             catch (Exception ex)
             {
-               await _logger.LogErrorAsync(ex, "Error setting key {Key} in Redis.", key);
+                //await _logger.LogErrorAsync(ex, "Error setting key {Key} in Redis.", key);
+                _logger.LogError(ex, "Error setting key {key} in Redis", key);
                 throw;
             }
         }
@@ -86,7 +88,8 @@ namespace Infrastructure.Caching
             }
             catch (Exception ex)
             {
-               await _logger.LogErrorAsync(ex, "Error setting key if this not exists in Redis!!", key);
+                //await _logger.LogErrorAsync(ex, "Error setting key if this not exists in Redis!!", key);
+                _logger.LogError(ex, "Error while setting key {key}" , key);
                 throw;
             }
         }
@@ -104,7 +107,8 @@ namespace Infrastructure.Caching
             }
             catch (Exception ex)
             {
-                await _logger.LogErrorAsync(ex, "Error removing key from Redis.", key);
+                //await _logger.LogErrorAsync(ex, "Error removing key from Redis.", key);
+                _logger.LogError(ex, "Error while removing key {key} from redis", key);
                 throw;
             }
         }
@@ -120,7 +124,7 @@ namespace Infrastructure.Caching
             }
             catch (Exception e)
             {
-                await _logger.LogErrorAsync(e, "Error checking existence of key {Key} in Redis", key);
+                _logger.LogError(e, "Error retrieving key {key} from redis", key);
                 throw;
             }
         }
@@ -135,14 +139,17 @@ namespace Infrastructure.Caching
                 foreach (var key in keys)
                 {
                     await _database.KeyDeleteAsync(key);
-                         await   _logger.LogInformationAsync("Removed cache key by pattern:", key);
+                    //await   _logger.LogInformationAsync("Removed cache key by pattern:", key);
+                    _logger.LogInformation("Removed cache key{key} by patttern: ", key);
                 }
 
-                await _logger.LogInformationAsync("Successfully invalidated keys with pattern:", pattern);
+                //await _logger.LogInformationAsync("Successfully invalidated keys with pattern:", pattern);
+                _logger.LogInformation("Successfully invalidated keys with pattern: ", pattern);
             }
             catch (Exception ex)
             {
-              await  _logger.LogErrorAsync(ex, "Error invalidating keys with pattern", pattern);
+                //await  _logger.LogErrorAsync(ex, "Error invalidating keys with pattern", pattern);    
+                _logger.LogError(ex, "Error invalidating keys {keys} with pattern", pattern);
                 throw;
             }
         }
@@ -157,7 +164,8 @@ namespace Infrastructure.Caching
             }
             catch (Exception ex)
             {
-                await _logger.LogErrorAsync(ex, "Error clearing Redis database.");
+                //await _logger.LogErrorAsync(ex, "Error clearing Redis database.");
+                _logger.LogError(ex, "Error clearing Redis db..");
                 throw;
             }
         }

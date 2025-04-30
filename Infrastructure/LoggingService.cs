@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure
 {
-    public class LoggingService: ILoggingService
+    public class LoggingService : ILoggingService
     {
        
          private readonly ILogger _logger;

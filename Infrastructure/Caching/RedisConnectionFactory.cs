@@ -18,11 +18,11 @@ namespace Infrastructure.Caching
     public class RedisConnectionFactory : IRedisConnectionFactory
     {
         private readonly RedisConfiguration _config;
-        //private readonly ILogger<RedisConnectionFactory> _logger;
-        private readonly ILoggingService _logger;
+        private readonly ILogger<RedisConnectionFactory> _logger;
+        //private readonly ILoggingService _logger;
         private readonly Lazy<IConnectionMultiplexer> _connection;
 
-        public RedisConnectionFactory(IOptions<RedisConfiguration> configOptions, ILoggingService logger)
+        public RedisConnectionFactory(IOptions<RedisConfiguration> configOptions, ILogger<RedisConnectionFactory> logger)
         {
             _config = configOptions.Value;
             _logger = logger;
@@ -43,12 +43,12 @@ namespace Infrastructure.Caching
                     AbortOnConnectFail = _config.AbortOnConnectFail
                 };
 
-                _logger.LogInformationAsync("Connecting to Redis at: {RedisHost}", _config.Host);
+                _logger.LogInformation("Connecting to Redis at: {RedisHost}", _config.Host);
                 return ConnectionMultiplexer.Connect(config);
             }
             catch (Exception ex)
             {
-                _logger.LogErrorAsync(ex, "Failed to connect to Redis at {RedisHost}.", _config.Host);
+                _logger.LogError(ex, "Failed to connect to Redis at {RedisHost}.", _config.Host);
                 throw;
             }
         }

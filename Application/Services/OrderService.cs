@@ -11,6 +11,7 @@ using Infrastructure.DataBase;
 using Application.Validators;
 using Core.Interfaces;
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 namespace Application.Services
 {
     public class OrderService :IOrderService
@@ -18,8 +19,9 @@ namespace Application.Services
         private readonly IDBManager _databaseManager;
         private readonly IValidator<OrderCreateDTO> _orderCreateValidator;
         private readonly ICacheService<List<ProductDTO>> _listCacheService;
-        private readonly ILoggingService _logger;
-        public OrderService(IDBManager databaseManager,IValidator<OrderCreateDTO> validator, ICacheService<List<ProductDTO>> listCacheService, ILoggingService logger)
+        //private readonly ILoggingService _logger;
+        private readonly ILogger<OrderService> _logger;
+        public OrderService(IDBManager databaseManager,IValidator<OrderCreateDTO> validator, ICacheService<List<ProductDTO>> listCacheService, ILogger<OrderService> logger)
         {
             _databaseManager = databaseManager;
             _orderCreateValidator = validator;
@@ -84,7 +86,9 @@ namespace Application.Services
             await _databaseManager.OrderRepository.AddAsync(order);
             await _databaseManager.SaveChangesAsync();
             await _listCacheService.InvalidateByPatternAsync("product_ids:*");
-            await _logger.LogInformationAsync("Invalidated cache when order has beeen created!!");
+            //await _logger.LogInformationAsync("Invalidated cache when order has beeen created!!");
+            _logger.LogInformation("Invalidated Cache when order has been created!!");
+
 
 
             return OrderMapper.MapToOrderDto(order, products);
@@ -140,7 +144,7 @@ namespace Application.Services
              _databaseManager.OrderRepository.Delete(order);
             await _databaseManager.SaveChangesAsync();
             await _listCacheService.InvalidateByPatternAsync("product_ids:*");
-            await _logger.LogInformationAsync("Invalidated cache when order has been deleted and product is being restored in the stock again!!");
+            _logger.LogInformation("Invalidated Cache when order has been created!!");
         }
     }
 }

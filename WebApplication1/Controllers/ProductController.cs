@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Newtonsoft.Json;
 using WebApplication1.Routes;
-using WebApplication1.Services;
+//using WebApplication1.Services;
 using Core.Exceptions;
 
 namespace WebApplication1.Controllers
@@ -20,10 +20,10 @@ namespace WebApplication1.Controllers
 
        
         private readonly IProductService _productService;
-        //private readonly ILogger<ProductController> _logger;
-        private readonly ILoggingService _logger;
+        private readonly ILogger<ProductController> _logger;
+        //private readonly ILoggingService _logger;
 
-        public ProductController(IProductService productService, ILoggingService logger)
+        public ProductController(IProductService productService, ILogger<ProductController> logger)
         {
             _productService = productService;
             _logger = logger;
@@ -37,7 +37,8 @@ namespace WebApplication1.Controllers
 
             if (products == null || products.Count == 0)
             {
-              await  _logger.LogInformationAsync("No products found for category: {Category}", category ?? "all");
+              //await  _logger.LogInformationAsync("No products found for category: {Category}", category ?? "all");
+              _logger.LogInformation("No products found for category: {Category}", category ?? "all");
                 return Ok(new List<ProductDTO>());
             }
 
@@ -50,7 +51,8 @@ namespace WebApplication1.Controllers
             var product = await _productService.GetProductByIdAsync(id);
             if (product == null)
             {
-               await _logger.LogWarningAsync("Product not found: {Id}", id);
+               //await _logger.LogWarningAsync("Product not found: {Id}", id);
+               _logger.LogWarning("Product not found: {Id}", id);
                 //return NotFound(new { message = "Product with this Id not found in db" });
                 throw new NotFoundException("Product with this Id not found in db");
             }
@@ -65,7 +67,8 @@ namespace WebApplication1.Controllers
         {
             var product = await _productService.CreateProductAsync(dto);
 
-            await _logger.LogInformationAsync("New product created with ID: {Id}", product.Id);
+            //await _logger.LogInformationAsync("New product created with ID: {Id}", product.Id);
+            _logger.LogInformation("New product created with ID: {Id}", product.Id);
             //await _redisCacheService.InvalidateProductCachesAsync();
             return CreatedAtAction(nameof(GetProductByID), new { id = product.Id }, product);
         }
@@ -77,7 +80,8 @@ namespace WebApplication1.Controllers
         {
             var product = await _productService.UpdateProductAsync(id, dto);
 
-            await _logger.LogInformationAsync("Product updated: {Id}", id);
+            //await _logger.LogInformationAsync("Product updated: {Id}", id);
+               _logger.LogInformation("Product updated: {Id}", id);
             return Ok(product);
         }
 
@@ -86,10 +90,12 @@ namespace WebApplication1.Controllers
         [HttpDelete(ApiRoute.Products.Delete)]
         public async Task<IActionResult> DeleteProduct(Guid id)
         {
-            await _logger.LogInformationAsync("Deleting product ID: {Id}", id);
-                await _productService.DeleteProductAsync(id);
+            //await _logger.LogInformationAsync("Deleting product ID: {Id}", id);
+            _logger.LogInformation("Deleting product ID: {Id}", id);
+            await _productService.DeleteProductAsync(id);
             //await _redisCacheService.InvalidateProductCachesAsync();
-            await _logger.LogInformationAsync("Product deleted, ID: {Id}, caches invalidated", id);
+            //await _logger.LogInformationAsync("Product deleted, ID: {Id}, caches invalidated", id);
+            _logger.LogInformation("Product deleted, ID: {Id}, caches invalidated", id);
             return Ok(new { message = $"Product with {id} is deleted successfully" });
 
         }

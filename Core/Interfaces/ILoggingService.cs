@@ -18,5 +18,10 @@ namespace Core.Interfaces
         Task LogWarningAsync(string message, params object[] args);
         Task LogErrorAsync(Exception? exception, string message, params object[] args);
         Task LogFatalAsync(Exception? exception, string message, params object[] args);
+
+        //void LogInformation(string message);
+        //void LogWarning(string message);
+        //void LogError(string message, Exception exception = null);
+        //void LogDebug(string message);
     }
 }

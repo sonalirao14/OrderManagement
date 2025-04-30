@@ -5,10 +5,10 @@ namespace WebApplication1.Middleware
     public class AuthContext
     {
         private readonly RequestDelegate _next;
-        //private readonly ILogger<AuthContext> _logger;
-        private readonly ILoggingService _logger;
+        private readonly ILogger<AuthContext> _logger;
+        //private readonly ILoggingService _logger;
 
-        public AuthContext(RequestDelegate next, ILoggingService logger)
+        public AuthContext(RequestDelegate next, ILogger<AuthContext> logger)
         {
             _next = next;
             _logger = logger;
@@ -19,7 +19,7 @@ namespace WebApplication1.Middleware
             var userId = context.User.FindFirst("userId")?.Value;
             if (!string.IsNullOrEmpty(userId))
             {
-                await _logger.LogInformationAsync("UserId extracted and added to context: {UserId}", userId);
+                 _logger.LogInformation("UserId extracted and added to context: {UserId}", userId);
                 context.Items["UserId"] = userId;
             }
 
